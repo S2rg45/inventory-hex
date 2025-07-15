@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 import urllib.request
 import json
 import traceback
+import httpx
 
 from src.utils.logger_utils import Log
 from src.utils.error_handling import ErrorHandler
@@ -22,14 +23,15 @@ class GetProducts:
     async def get_products(self):
         try:
             self.log.logger.info("Fetching all products")
-            req = urllib.request.Request(
-                url="http://localhost:8000/api-products/product/",
-                data=json.dumps(self.product_id.model_dump()).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-            with urllib.request.urlopen(req) as resp:
-                resp_data = json.loads(resp.read().decode())
+            url="http://ms-product:8000/api-products/product/"
+            params = self.product_id.model_dump()
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    url,
+                    json=params,
+                    headers={"Content-Type": "application/json"}
+                )
+            resp_data = response.json()
             self.log.logger.info(f"Products fetched successfully: {resp_data}")
             # Return only the data, not a JSONResponse
             return resp_data

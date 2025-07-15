@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 import urllib.request
 import json
 import traceback
+import httpx
 
 from src.utils.logger_utils import Log
 from src.utils.error_handling import ErrorHandler
@@ -21,15 +22,16 @@ class UpdateProducts:
     async def update_product(self):
         try:
             request = self.product
-            req = urllib.request.Request(
-                url="http://localhost:8000/api-products/delete-product/",
-                data=json.dumps(self.product).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-            with urllib.request.urlopen(req) as resp:
-                resp_data = json.loads(resp.read().decode())
-            # Return only the data, not a JSONResponse
+            url="http://ms-product:8000/api-products/delete-product/"
+            params = request.model_dump()
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    url,
+                    json=params,
+                    headers={"Content-Type": "application/json"}
+                )
+            resp_data = response.json()
+            self.log.logger.info(f"Products fetched successfully: {resp_data}")
             return resp_data
         except Exception as error:
             raise ErrorHandler.handle_error(error, "Error updating product")
